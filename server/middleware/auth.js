@@ -1,9 +1,9 @@
 const jwt = require('jsonwebtoken');
 
-// Express middleware that rejects requests without a valid session token.
-// On success it attaches the decoded user to req.user for downstream handlers.
+// reject requests that dont have a valid session token
+// give the route the verified user once the token checks out
 function requireAuth(req, res, next) {
-  // The JWT is stored in an HttpOnly cookie named "token".
+  // get the jwt from the session cookie
   const token = req.cookies && req.cookies.token;
 
   if (!token) {
@@ -11,17 +11,17 @@ function requireAuth(req, res, next) {
   }
 
   try {
-    // Verify the signature and expiry, then expose a trimmed user object.
+    // check the signature and expiry before trusting the user id
     const payload = jwt.verify(token, process.env.JWT_SECRET);
     req.user = {
-      id: String(payload.sub), // GitHub user id, used to scope capsules per user.
+      id: String(payload.sub), // use the github id to find the users own capsules
       login: payload.login,
       name: payload.name,
       avatar: payload.avatar
     };
     return next();
   } catch {
-    // Any invalid/expired/tampered token lands here.
+    // invalid or expired tokens get a 401
     return res.status(401).json({ error: 'Unauthorized' });
   }
 }

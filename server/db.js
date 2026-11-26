@@ -1,28 +1,28 @@
-// Database layer built on sql.js (SQLite compiled to WebAssembly).
-// sql.js keeps the database in memory, so we persist it to a file after every write.
+// sqlite through sql.js
+// the database lives in memory so save it to a file after writes
 const fs = require('fs');
 const path = require('path');
 const initSqlJs = require('sql.js');
 
-// Ensure the data directory exists before we try to read/write the db file.
+// make sure the data folder is there first
 const dataDir = path.join(__dirname, '..', 'data');
 if (!fs.existsSync(dataDir)) {
   fs.mkdirSync(dataDir, { recursive: true });
 }
 
-// Location of the on-disk database file (overridable via env for tests/deploys).
+// use the env path if one was set
 const dbPath = process.env.DATABASE_PATH || path.join(dataDir, 'capsules.db');
 
-let SQL; // The initialized sql.js module.
-let db; // The in-memory database instance.
+let SQL; // sql.js once its loaded
+let db; // the open database in memory
 
-// Dump the in-memory database to disk so data survives restarts.
+// save the current database to disk for the next start
 function persist() {
   const data = db.export();
   fs.writeFileSync(dbPath, Buffer.from(data));
 }
 
-// Combine sql.js's separate column-name and value arrays into a plain row object.
+// pair column names with their values to build a row
 function mapColumns(columns, values) {
   const row = {};
   columns.forEach((col, i) => {
@@ -31,10 +31,10 @@ function mapColumns(columns, values) {
   return row;
 }
 
-// Thin wrapper giving sql.js a better-sqlite3-like .all/.get/.run API.
+// give the routes a simple way to read and write rows
 function prepare(sql) {
   return {
-    // Run the query and return all matching rows as objects.
+    // get every matching row
     all(...params) {
       const stmt = db.prepare(sql);
       if (params.length) stmt.bind(params);
@@ -42,44 +42,44 @@ function prepare(sql) {
       while (stmt.step()) {
         rows.push(mapColumns(stmt.getColumnNames(), stmt.get()));
       }
-      stmt.free(); // Release the statement to avoid leaking WASM memory.
+      stmt.free(); // free the statement so it doesnt hold onto memory
       return rows;
     },
-    // Return just the first matching row, or undefined.
+    // get the first match if there is one
     get(...params) {
       const rows = this.all(...params);
       return rows[0] || undefined;
     },
-    // Execute an insert/update/delete, then report changes and the new row id.
+    // run the write and report what changed
     run(...params) {
       db.run(sql, params);
       const changes = db.getRowsModified();
-      // sql.js has no lastInsertRowid helper, so query it explicitly.
+      // ask sqlite for the id of the last insert
       const idRow = db.exec('SELECT last_insert_rowid() AS id');
       const lastInsertRowid =
         idRow[0] && idRow[0].values[0] ? idRow[0].values[0][0] : 0;
-      persist(); // Save to disk since this was a write.
+      persist(); // save after the write
       return { changes, lastInsertRowid };
     }
   };
 }
 
-// Initialize the database once and create the schema if needed.
-// Returns an object exposing prepare() and a raw exec() helper.
+// open the database and set up the table if needed
+// give the server helpers for running queries
 async function initDb() {
-  if (db) return { prepare, exec: (sql) => db.run(sql) }; // Reuse an already-open db.
+  if (db) return { prepare, exec: (sql) => db.run(sql) }; // reuse the database if its already open
 
   SQL = await initSqlJs();
   if (fs.existsSync(dbPath)) {
-    // Load the existing database file into memory.
+    // read the saved database into memory
     const fileBuffer = fs.readFileSync(dbPath);
     db = new SQL.Database(fileBuffer);
   } else {
-    // First run: start with an empty database.
+    // start empty if theres no saved file
     db = new SQL.Database();
   }
 
-  // Create the capsules table on first run (no-op if it already exists).
+  // only create the table if it doesnt exist yet
   db.run(`
     CREATE TABLE IF NOT EXISTS capsules (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -98,7 +98,7 @@ async function initDb() {
       created_at TEXT DEFAULT CURRENT_TIMESTAMP
     )
   `);
-  persist(); // Write the (possibly newly created) schema to disk.
+  persist(); // save the schema to disk
 
   return { prepare, exec: (sql) => db.run(sql) };
 }

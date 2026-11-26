@@ -1,14 +1,14 @@
-// Fixed option lists for the form's dropdowns.
+// options for the form dropdowns
 const CATEGORIES = ['Coding', 'Writing', 'Research', 'Debugging', 'Study', 'Other'];
 const USEFULNESS = ['Good', 'Needs Improvement'];
 const YES_NO = ['Yes', 'No'];
 
-// Controlled form for creating or editing a capsule.
-// State lives in the parent (Dashboard); this component just reads `form` and reports changes.
-// Props: form (values), setForm (updater), onSubmit, onCancel (null hides the cancel button),
-//        busy (disables inputs while saving), editing (toggles button labels).
+// same form for creating and editing
+// the dashboard keeps the form values so this just passes changes back
+// cancel is only passed in for the edit form
+// the save button label depends on which form is open
 export default function CapsuleForm({ form, setForm, onSubmit, onCancel, busy, editing }) {
-  // Update a single field while preserving the rest of the form state.
+  // change just this field and keep the rest
   function update(field, value) {
     setForm((prev) => ({ ...prev, [field]: value }));
   }
@@ -131,11 +131,11 @@ export default function CapsuleForm({ form, setForm, onSubmit, onCancel, busy, e
       </label>
 
       <div className="form-actions">
-        {/* Label reflects state: saving, editing an existing capsule, or creating a new one. */}
+        {/* show what the save button is doing */}
         <button className="btn btn-primary" type="submit" disabled={busy}>
           {busy ? 'Saving...' : editing ? 'Save changes' : 'Save capsule'}
         </button>
-        {/* Cancel is only shown while editing (onCancel is null in create mode). */}
+        {/* only show cancel in the edit popup */}
         {onCancel && (
           <button className="btn btn-ghost" type="button" onClick={onCancel} disabled={busy}>
             Cancel edit

@@ -1,4 +1,4 @@
-// Load environment variables from .env into process.env before anything else.
+// load the env settings before starting the server
 require('dotenv').config();
 
 const path = require('path');
@@ -10,52 +10,52 @@ const { initDb } = require('./db');
 const authRoutes = require('./routes/auth');
 const capsuleRoutes = require('./routes/capsules');
 
-// Entry point: wires up middleware, routes, and the static frontend, then starts listening.
+// set up the api and serve the frontend
 async function main() {
   const app = express();
   const PORT = process.env.PORT || 3000;
   const isProduction = process.env.NODE_ENV === 'production';
 
-  // JWT signing/verification needs this secret, so warn early if it is missing.
+  // warn early if the jwt secret is missing
   if (!process.env.JWT_SECRET) {
     console.warn('Warning: JWT_SECRET is not set. Authentication will fail until it is configured.');
   }
 
-  // Open (or create) the SQLite database and share the handle via app.locals for route access.
+  // open the database once so the routes can share it
   app.locals.db = await initDb();
 
-  // CORS: in dev the Vite frontend runs on a different origin, so allow it and send cookies.
-  // In production the frontend is served from this same server, so cross-origin is disabled.
+  // let the local vite frontend send cookies to the api
+  // the deployed app and api share an origin
   app.use(
     cors({
       origin: isProduction ? false : ['http://localhost:5173', 'http://127.0.0.1:5173'],
       credentials: true
     })
   );
-  app.use(express.json({ limit: '1mb' })); // Parse JSON request bodies (capped at 1mb).
-  app.use(cookieParser()); // Parse cookies so auth middleware can read the session token.
+  app.use(express.json({ limit: '1mb' })); // cap json request bodies at 1mb
+  app.use(cookieParser()); // read cookies before checking the session
 
-  // Lightweight health check used by the landing page and uptime monitors.
+  // give the landing page a quick way to check if the api is up
   app.get('/api/health', (req, res) => {
     res.json({ status: 'ok' });
   });
 
-  // Mount feature routers.
-  app.use('/auth', authRoutes); // GitHub OAuth login/logout and session info.
-  app.use('/api/capsules', capsuleRoutes); // CRUD for the user's saved prompt capsules.
+  // set up the auth and capsule routes
+  app.use('/auth', authRoutes); // sign in, sign out and session check
+  app.use('/api/capsules', capsuleRoutes); // read and write the users saved capsules
 
-  // Serve the built React app from client/dist.
+  // serve the built react app
   const clientDist = path.join(__dirname, '..', 'client', 'dist');
   app.use(express.static(clientDist));
 
-  // SPA fallback: send index.html for any non-API/auth route so client-side routing works.
+  // let react handle page urls when someone opens them directly
   app.get('*', (req, res, next) => {
     if (req.path.startsWith('/api') || req.path.startsWith('/auth')) {
-      return next(); // Let real API/auth routes 404 normally instead of returning HTML.
+      return next(); // keep normal 404s for missing api or auth routes
     }
     res.sendFile(path.join(clientDist, 'index.html'), (err) => {
       if (err) {
-        // Reached when the frontend has not been built yet.
+        // this can happen before the frontend is built
         res.status(404).send(
           'Frontend not built yet. Run "npm run build" or use "npm run dev" for local development.'
         );
@@ -63,7 +63,7 @@ async function main() {
     });
   });
 
-  // Catch-all error handler: log the error and hide details from the client.
+  // log the details on the server and send a generic error
   app.use((err, req, res, next) => {
     console.error(err);
     res.status(500).json({ error: 'Internal server error' });
@@ -74,7 +74,7 @@ async function main() {
   });
 }
 
-// Start the server, failing loudly if startup (e.g. DB init) throws.
+// log startup errors and stop if the app cant start
 main().catch((err) => {
   console.error('Failed to start server:', err);
   process.exit(1);

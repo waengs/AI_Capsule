@@ -23,17 +23,17 @@ function PromptPreview({ prompt }) {
   );
 }
 
-// Renders the user's saved capsules with edit/delete controls.
-// Props: capsules (array), onEdit/onDelete (callbacks), busy (disables buttons during requests).
+// saved capsules with edit and delete buttons
+// pause edit and delete while a request is running
 export default function CapsuleList({ capsules, onEdit, onDelete, busy }) {
-  // Empty state shown before the user has created anything.
+  // show this when there are no saved capsules
   if (!capsules.length) {
     return <p className="muted empty-state">No prompt records yet. Use the form to save your first AI capsule.</p>;
   }
 
   return (
     <ul className="capsule-list">
-      {/* One list item per capsule; key by id for stable React reconciliation. */}
+      {/* use the capsule id so react can keep track of each card */}
       {capsules.map((c) => (
         <li key={c.id}>
           <div className="capsule-head">
@@ -65,7 +65,7 @@ export default function CapsuleList({ capsules, onEdit, onDelete, busy }) {
             </div>
           </div>
           <PromptPreview key={c.prompt_text} prompt={c.prompt_text} />
-          {/* Metadata; optional fields are only rendered when present. */}
+          {/* only show optional details when they have a value */}
           <dl className="capsule-meta">
             {c.response_summary && (
               <>

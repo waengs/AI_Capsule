@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 
-// Public landing page: pitch, call-to-action buttons, and a feature summary.
+// public page that explains what the app does
 export default function Landing() {
   return (
     <div className="page-shell landing">
@@ -29,7 +29,7 @@ export default function Landing() {
         </div>
       </main>
 
-      {/* Three-up summary of the core features: Save, Review, Own. */}
+      {/* quick look at what you can do with a capsule */}
       <section className="feature-strip" aria-label="What you can do">
         <div>
           <h2>Save</h2>

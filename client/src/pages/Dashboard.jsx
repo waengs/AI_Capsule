@@ -4,7 +4,7 @@ import { createCapsule, deleteCapsule, getMe, listCapsules, logout, updateCapsul
 import CapsuleForm from '../components/CapsuleForm';
 import CapsuleList from '../components/CapsuleList';
 
-// Default values for a blank "create capsule" form.
+// starting values for a new capsule
 const emptyForm = {
   project_name: '',
   prompt_title: '',
@@ -19,18 +19,18 @@ const emptyForm = {
   notes: ''
 };
 
-// Main authenticated screen: shows the user, the create/edit form, and their capsule list.
+// dashboard for signed in users
 export default function Dashboard() {
   const navigate = useNavigate();
-  const [user, setUser] = useState(null); // The logged-in GitHub user.
-  const [capsules, setCapsules] = useState([]); // The user's saved capsules.
+  const [user, setUser] = useState(null); // the signed in github user
+  const [capsules, setCapsules] = useState([]); // capsules saved by this user
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm] = useState(emptyForm);
   const [editError, setEditError] = useState('');
   const editDialog = useRef(null);
-  const [error, setError] = useState(''); // Last error message to display.
-  const [busy, setBusy] = useState(false); // True while a save/delete request is in flight.
+  const [error, setError] = useState(''); // error to show above the create form
+  const [busy, setBusy] = useState(false); // keep the buttons disabled while saving or deleting
 
   useEffect(() => {
     const dialog = editDialog.current;
@@ -38,15 +38,15 @@ export default function Dashboard() {
     if (editingId === null && dialog.open) dialog.close();
   }, [editingId]);
 
-  // Reload the capsule list from the server.
+  // get the latest capsule list
   async function refresh() {
     const data = await listCapsules();
     setCapsules(data);
   }
 
-  // On mount: confirm the session and load data; redirect to login if the session is gone.
+  // check the session and load the list when the page opens
   useEffect(() => {
-    let cancelled = false; // Avoids state updates after unmount.
+    let cancelled = false; // skip updates if we already left the page
     (async () => {
       try {
         const me = await getMe();
@@ -54,7 +54,7 @@ export default function Dashboard() {
         setUser(me.user);
         await refresh();
       } catch {
-        // Session invalid/expired: send the user back to login.
+        // go back to login if the session check fails
         if (!cancelled) navigate('/login', { replace: true });
       }
     })();
@@ -63,7 +63,7 @@ export default function Dashboard() {
     };
   }, [navigate]);
 
-  // Open a separate form with the chosen capsule's saved values.
+  // fill the popup with the saved values and keep the create draft
   function startEdit(capsule) {
     setEditingId(capsule.id);
     setEditForm({
@@ -86,7 +86,7 @@ export default function Dashboard() {
     if (!busy) setEditingId(null);
   }
 
-  // Handle form submit for both create and update, then refresh the list.
+  // save either form and update the list
   async function handleSubmit(event, isEdit = false) {
     event.preventDefault();
     if (busy) return;
@@ -106,11 +106,11 @@ export default function Dashboard() {
     } catch (err) {
       setSaveError(err.message || 'Save failed');
     } finally {
-      setBusy(false); // Always re-enable the UI.
+      setBusy(false); // turn the buttons back on even if the save failed
     }
   }
 
-  // Delete a capsule after a confirmation prompt.
+  // ask before deleting the capsule
   async function handleDelete(id) {
     if (!window.confirm('Delete this capsule?')) return;
     setBusy(true);
@@ -125,7 +125,7 @@ export default function Dashboard() {
     }
   }
 
-  // Log out and return to the landing page.
+  // clear the session and go back home
   async function handleLogout() {
     await logout();
     navigate('/');
@@ -146,7 +146,7 @@ export default function Dashboard() {
         </div>
       </header>
 
-      {/* Two-column layout: the form on the left, the capsule list on the right. */}
+      {/* create form on the left and saved capsules on the right */}
       <main className="dashboard-grid">
         <section>
           <h1>Create new prompt capsule</h1>

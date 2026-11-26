@@ -1,8 +1,8 @@
-// Thin fetch wrapper used by every API call in the app.
-// Sends cookies, sets JSON headers, parses the response, and throws on non-2xx.
+// all the api calls go through this
+// send the session cookie and turn failed responses into errors
 async function request(path, options = {}) {
   const res = await fetch(path, {
-    credentials: 'include', // Send the HttpOnly session cookie with each request.
+    credentials: 'include', // include the session cookie
     headers: {
       'Content-Type': 'application/json',
       ...(options.headers || {})
@@ -10,7 +10,7 @@ async function request(path, options = {}) {
     ...options
   });
 
-  // Parse the body as JSON when possible, otherwise keep it as raw text.
+  // keep the response as text if it isnt json
   let data = null;
   const text = await res.text();
   if (text) {
@@ -21,33 +21,33 @@ async function request(path, options = {}) {
     }
   }
 
-  // Turn HTTP errors into thrown Errors so callers can use try/catch.
+  // let callers handle failed requests with try/catch
   if (!res.ok) {
     const message = (data && data.error) || res.statusText || 'Request failed';
     const error = new Error(message);
-    error.status = res.status; // Expose status (e.g. 401) for callers that care.
+    error.status = res.status; // keep the status so callers can check for a 401
     throw error;
   }
 
   return data;
 }
 
-// Fetch the currently logged-in user (401 if not authenticated).
+// check whos signed in
 export function getMe() {
   return request('/auth/me');
 }
 
-// End the session by clearing the auth cookie.
+// clear the session cookie
 export function logout() {
   return request('/auth/logout', { method: 'POST' });
 }
 
-// List the current user's saved capsules.
+// load the users saved capsules
 export function listCapsules() {
   return request('/api/capsules');
 }
 
-// Create a new capsule from the given form body.
+// save a new capsule
 export function createCapsule(body) {
   return request('/api/capsules', {
     method: 'POST',
@@ -55,7 +55,7 @@ export function createCapsule(body) {
   });
 }
 
-// Update the capsule with the given id.
+// save changes to this capsule
 export function updateCapsule(id, body) {
   return request(`/api/capsules/${id}`, {
     method: 'PUT',
@@ -63,7 +63,7 @@ export function updateCapsule(id, body) {
   });
 }
 
-// Delete the capsule with the given id.
+// remove this capsule
 export function deleteCapsule(id) {
   return request(`/api/capsules/${id}`, {
     method: 'DELETE'

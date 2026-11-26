@@ -1,6 +1,6 @@
 import { Link, useSearchParams } from 'react-router-dom';
 
-// Maps the ?error=... codes that the OAuth callback redirects with to friendly messages.
+// turn the error code from the login redirect into a readable message
 const ERROR_MESSAGES = {
   oauth_denied: 'GitHub login was cancelled or denied.',
   token_exchange: 'Could not complete OAuth token exchange.',
@@ -8,10 +8,10 @@ const ERROR_MESSAGES = {
   server: 'Login failed on the server. Try again.'
 };
 
-// Login page: a single "Continue with GitHub" button plus any error from a failed attempt.
+// github sign in and any error from the last attempt
 export default function Login() {
   const [params] = useSearchParams();
-  const error = params.get('error'); // Present when redirected back after a failure.
+  const error = params.get('error'); // set by the redirect if login fails
 
   return (
     <div className="page-shell login-page">
@@ -27,14 +27,14 @@ export default function Login() {
           Sign in using your GitHub account to access your personal AI prompts. After authorization, your secure session is safely handled by an HttpOnly cookie.
         </p>
 
-        {/* Show a friendly error if the last login attempt failed. */}
+        {/* show what went wrong with the last login */}
         {error && (
           <p className="alert" role="alert">
             {ERROR_MESSAGES[error] || 'Login failed. Please try again.'}
           </p>
         )}
 
-        {/* Plain link (not client-side route) so the browser hits the server OAuth endpoint. */}
+        {/* use a regular link so the request goes to the server */}
         <a className="btn btn-primary btn-wide" href="/auth/github">
           Continue with GitHub
         </a>

@@ -1,63 +1,63 @@
-// Authentication routes: GitHub OAuth login flow plus session helpers (/me, /logout).
+// github sign in and session routes
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const { requireAuth } = require('../middleware/auth');
 
 const router = express.Router();
 
-// Shared cookie settings for the session token.
+// settings for the session cookie
 function cookieOptions() {
   const isProduction = process.env.NODE_ENV === 'production';
   return {
-    httpOnly: true, // Not readable from JavaScript, which limits XSS token theft.
-    secure: isProduction, // Only sent over HTTPS in production.
-    sameSite: 'lax', // Sent on top-level navigations, which the OAuth redirect needs.
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days, matching the JWT expiry.
+    httpOnly: true, // keep browser scripts from reading the cookie
+    secure: isProduction, // only send the cookie over https in production
+    sameSite: 'lax', // allow the cookie on top level navigation for the login redirect
+    maxAge: 7 * 24 * 60 * 60 * 1000, // keep the cookie lifetime the same as the jwt
     path: '/'
   };
 }
 
-// Base URL of this server, used to build the OAuth redirect URI.
+// use the server address to build the github callback url
 function appBaseUrl() {
   return (process.env.APP_URL || `http://localhost:${process.env.PORT || 3000}`).replace(/\/$/, '');
 }
 
-// Base URL to redirect the browser back to after login.
+// pick where the browser goes after sign in
 function clientBaseUrl() {
-  // In local Vite dev, redirect to the frontend origin after OAuth.
-  // In production (same-origin deploy), APP_URL is used.
+  // send local users back to vite after sign in
+  // on render the frontend and api share the same url
   return (process.env.CLIENT_URL || process.env.APP_URL || appBaseUrl()).replace(/\/$/, '');
 }
 
-// Step 1 of OAuth: send the user to GitHub's authorization screen.
+// send the user to github to sign in
 router.get('/github', (req, res) => {
   const clientId = process.env.GITHUB_CLIENT_ID;
   if (!clientId) {
     return res.status(500).send('GITHUB_CLIENT_ID is not configured');
   }
 
-  // GitHub redirects back here with a short-lived authorization code.
+  // github sends back a short lived code
   const redirectUri = `${appBaseUrl()}/auth/github/callback`;
   const params = new URLSearchParams({
     client_id: clientId,
     redirect_uri: redirectUri,
-    scope: 'read:user user:email' // Minimal scopes: profile and email only.
+    scope: 'read:user user:email' // ask for profile and email access
   });
 
   res.redirect(`https://github.com/login/oauth/authorize?${params.toString()}`);
 });
 
-// Step 2 of OAuth: GitHub redirects back here with ?code=...
+// handle the code from github
 router.get('/github/callback', async (req, res) => {
   const { code, error } = req.query;
 
-  // User denied access or GitHub returned an error.
+  // send the user back to login if github didnt return a code
   if (error || !code) {
     return res.redirect(`${clientBaseUrl()}/login?error=oauth_denied`);
   }
 
   try {
-    // Exchange the authorization code for an access token.
+    // swap the code for a github access token
     const tokenRes = await fetch('https://github.com/login/oauth/access_token', {
       method: 'POST',
       headers: {
@@ -74,11 +74,11 @@ router.get('/github/callback', async (req, res) => {
 
     const tokenData = await tokenRes.json();
     if (!tokenData.access_token) {
-      // Token exchange failed (bad code, wrong client secret, etc.).
+      // go back to login if github didnt issue a token
       return res.redirect(`${clientBaseUrl()}/login?error=token_exchange`);
     }
 
-    // Use the access token to fetch the authenticated user's profile.
+    // use the token to get the users github profile
     const userRes = await fetch('https://api.github.com/user', {
       headers: {
         Authorization: `Bearer ${tokenData.access_token}`,
@@ -92,10 +92,10 @@ router.get('/github/callback', async (req, res) => {
     }
 
     const ghUser = await userRes.json();
-    // Mint our own session JWT from the GitHub profile (we never store GitHub's token).
+    // make our own session jwt from the github profile
     const appJwt = jwt.sign(
       {
-        sub: String(ghUser.id), // Stable user identifier.
+        sub: String(ghUser.id), // keep the github id as the stable user id
         login: ghUser.login,
         name: ghUser.name || ghUser.login,
         avatar: ghUser.avatar_url
@@ -104,7 +104,7 @@ router.get('/github/callback', async (req, res) => {
       { expiresIn: '7d' }
     );
 
-    // Store the session as an HttpOnly cookie, then send the user into the app.
+    // set the session cookie and open the dashboard
     res.cookie('token', appJwt, cookieOptions());
     return res.redirect(`${clientBaseUrl()}/dashboard`);
   } catch (err) {
@@ -113,12 +113,12 @@ router.get('/github/callback', async (req, res) => {
   }
 });
 
-// Return the current user, or 401 if the session is missing/invalid.
+// get the signed in user or return a 401
 router.get('/me', requireAuth, (req, res) => {
   res.json({ user: req.user });
 });
 
-// Clear the session cookie. Options must match those used when setting it.
+// clear the cookie using the same settings
 router.post('/logout', (req, res) => {
   res.clearCookie('token', {
     httpOnly: true,
