@@ -1,3 +1,28 @@
+import { useState } from 'react';
+
+function PromptPreview({ prompt }) {
+  const [copyStatus, setCopyStatus] = useState('');
+
+  async function copyPrompt() {
+    try {
+      await navigator.clipboard.writeText(prompt);
+      setCopyStatus('Prompt copied.');
+    } catch {
+      setCopyStatus('Could not copy. Select the prompt to copy it manually.');
+    }
+  }
+
+  return (
+    <div className="prompt-preview">
+      <pre>{prompt}</pre>
+      <button type="button" className="btn btn-ghost btn-small" onClick={copyPrompt} aria-label="Copy prompt">
+        Copy
+      </button>
+      <span className="prompt-copy-status" role="status">{copyStatus}</span>
+    </div>
+  );
+}
+
 // Renders the user's saved capsules with edit/delete controls.
 // Props: capsules (array), onEdit/onDelete (callbacks), busy (disables buttons during requests).
 export default function CapsuleList({ capsules, onEdit, onDelete, busy }) {
@@ -39,8 +64,7 @@ export default function CapsuleList({ capsules, onEdit, onDelete, busy }) {
               </button>
             </div>
           </div>
-          {/* <pre> preserves the prompt's original whitespace and line breaks. */}
-          <pre className="prompt-preview">{c.prompt_text}</pre>
+          <PromptPreview key={c.prompt_text} prompt={c.prompt_text} />
           {/* Metadata; optional fields are only rendered when present. */}
           <dl className="capsule-meta">
             {c.response_summary && (

@@ -1,13 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import {
-  createCapsule,
-  deleteCapsule,
-  getMe,
-  listCapsules,
-  logout,
-  updateCapsule
-} from '../api';
+import { createCapsule, deleteCapsule, getMe, listCapsules, logout, updateCapsule } from '../api';
 import CapsuleForm from '../components/CapsuleForm';
 import CapsuleList from '../components/CapsuleList';
 
@@ -31,10 +24,19 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const [user, setUser] = useState(null); // The logged-in GitHub user.
   const [capsules, setCapsules] = useState([]); // The user's saved capsules.
-  const [form, setForm] = useState(emptyForm); // Current form values (create or edit).
-  const [editingId, setEditingId] = useState(null); // Non-null when editing an existing capsule.
+  const [form, setForm] = useState(emptyForm);
+  const [editingId, setEditingId] = useState(null);
+  const [editForm, setEditForm] = useState(emptyForm);
+  const [editError, setEditError] = useState('');
+  const editDialog = useRef(null);
   const [error, setError] = useState(''); // Last error message to display.
   const [busy, setBusy] = useState(false); // True while a save/delete request is in flight.
+
+  useEffect(() => {
+    const dialog = editDialog.current;
+    if (editingId !== null && !dialog.open) dialog.showModal();
+    if (editingId === null && dialog.open) dialog.close();
+  }, [editingId]);
 
   // Reload the capsule list from the server.
   async function refresh() {
@@ -61,10 +63,10 @@ export default function Dashboard() {
     };
   }, [navigate]);
 
-  // Switch the form into edit mode, pre-filled with the chosen capsule's values.
+  // Open a separate form with the chosen capsule's saved values.
   function startEdit(capsule) {
     setEditingId(capsule.id);
-    setForm({
+    setEditForm({
       project_name: capsule.project_name || '',
       prompt_title: capsule.prompt_title || '',
       prompt_version: capsule.prompt_version || '',
@@ -77,32 +79,32 @@ export default function Dashboard() {
       screenshot_url: capsule.screenshot_url || '',
       notes: capsule.notes || ''
     });
-    setError('');
-    window.scrollTo({ top: 0, behavior: 'smooth' }); // Bring the form into view.
+    setEditError('');
   }
 
-  // Clear the form and leave edit mode (back to "create" state).
-  function resetForm() {
-    setEditingId(null);
-    setForm(emptyForm);
-    setError('');
+  function cancelEdit() {
+    if (!busy) setEditingId(null);
   }
 
   // Handle form submit for both create and update, then refresh the list.
-  async function handleSubmit(event) {
+  async function handleSubmit(event, isEdit = false) {
     event.preventDefault();
+    if (busy) return;
+    const setSaveError = isEdit ? setEditError : setError;
     setBusy(true);
-    setError('');
+    setSaveError('');
     try {
-      if (editingId) {
-        await updateCapsule(editingId, form); // Edit mode.
+      if (isEdit) {
+        const updated = await updateCapsule(editingId, editForm);
+        setCapsules((current) => current.map((capsule) => capsule.id === updated.id ? updated : capsule));
+        setEditingId(null);
       } else {
-        await createCapsule(form); // Create mode.
+        await createCapsule(form);
+        setForm(emptyForm);
+        await refresh();
       }
-      resetForm();
-      await refresh();
     } catch (err) {
-      setError(err.message || 'Save failed');
+      setSaveError(err.message || 'Save failed');
     } finally {
       setBusy(false); // Always re-enable the UI.
     }
@@ -115,7 +117,6 @@ export default function Dashboard() {
     setError('');
     try {
       await deleteCapsule(id);
-      if (editingId === id) resetForm(); // If editing the deleted one, clear the form.
       await refresh();
     } catch (err) {
       setError(err.message || 'Delete failed');
@@ -148,8 +149,7 @@ export default function Dashboard() {
       {/* Two-column layout: the form on the left, the capsule list on the right. */}
       <main className="dashboard-grid">
         <section>
-          {/* Heading reflects whether we are creating or editing. */}
-          <h1>{editingId ? 'Edit prompt capsule' : 'Create new prompt capsule'}</h1>
+          <h1>Create new prompt capsule</h1>
           <p className="muted">
             All records are stored privately under your account and cannot be seen or modified by other users.
           </p>
@@ -162,9 +162,7 @@ export default function Dashboard() {
             form={form}
             setForm={setForm}
             onSubmit={handleSubmit}
-            onCancel={editingId ? resetForm : null}
             busy={busy}
-            editing={Boolean(editingId)}
           />
         </section>
 
@@ -181,6 +179,26 @@ export default function Dashboard() {
           />
         </section>
       </main>
+      <dialog
+        ref={editDialog}
+        className="edit-dialog"
+        aria-labelledby="edit-capsule-title"
+        onCancel={(event) => {
+          event.preventDefault();
+          cancelEdit();
+        }}
+      >
+        <h2 id="edit-capsule-title">Edit prompt capsule</h2>
+        {editError && <p className="alert" role="alert">{editError}</p>}
+        <CapsuleForm
+          form={editForm}
+          setForm={setEditForm}
+          onSubmit={(event) => handleSubmit(event, true)}
+          onCancel={cancelEdit}
+          busy={busy}
+          editing
+        />
+      </dialog>
     </div>
   );
 }

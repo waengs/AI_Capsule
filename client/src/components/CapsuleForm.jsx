@@ -77,17 +77,17 @@ export default function CapsuleForm({ form, setForm, onSubmit, onCancel, busy, e
         />
       </label>
 
+      <label>
+        Usefulness
+        <select value={form.usefulness} onChange={(e) => update('usefulness', e.target.value)}>
+          {USEFULNESS.map((usefulness) => (
+            <option key={usefulness} value={usefulness}>
+              {usefulness}
+            </option>
+          ))}
+        </select>
+      </label>
       <div className="form-row">
-        <label>
-          Usefulness
-          <select value={form.usefulness} onChange={(e) => update('usefulness', e.target.value)}>
-            {USEFULNESS.map((u) => (
-              <option key={u} value={u}>
-                {u}
-              </option>
-            ))}
-          </select>
-        </label>
         <label>
           Reviewed
           <select value={form.reviewed} onChange={(e) => update('reviewed', e.target.value)}>

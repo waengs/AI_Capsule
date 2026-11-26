@@ -6,8 +6,9 @@ React frontend + Express backend + GitHub OAuth + application JWT (HttpOnly cook
 
 ## Deployed URL
 
-- **Public URL:** _add after deployment, e.g. `https://ai-capsule.onrender.com`_
-- **Cloud platform:** Render (recommended), or Azure App Service or another public host
+- **Public URL** [AI Capsule](https://ai-capsule-inm9.onrender.com/)
+- **Cloud platform** Render
+- **Health check** [GET /api/health](https://ai-capsule-inm9.onrender.com/api/health) returns `{ "status": "ok" }`.
 
 ## Features
 
@@ -131,22 +132,22 @@ Default file: `data/capsules.db`.
 
 ## Required cURL checks (deployed)
 
-```bash
-# Test 1 - no authentication → 401
-curl -i https://YOUR-APP/api/capsules
+```powershell
+# Test 1 - no session cookie
+curl.exe -i https://ai-capsule-inm9.onrender.com/api/capsules
 
-# Test 2 - fake / invalid JWT → 401
-curl -i -H "Cookie: token=fake-token-123" https://YOUR-APP/api/capsules
+# Test 2 - invalid session cookie
+curl.exe -i -H "Cookie: token=fake-token-123" https://ai-capsule-inm9.onrender.com/api/capsules
 ```
 
 ### Results obtained
 
-_Paste your deployed results here after testing:_
+Both checks passed on the public Render deployment on 26 November 2026.
 
-```
-Test 1: HTTP/… 401 …
-Test 2: HTTP/… 401 …
-```
+| Test | HTTP status | Response body |
+| --- | --- | --- |
+| No session cookie | `HTTP/1.1 401 Unauthorized` | `{"error":"Unauthorized"}` |
+| Invalid `token` cookie | `HTTP/1.1 401 Unauthorized` | `{"error":"Unauthorized"}` |
 
 ## One honest limitation
 
@@ -154,7 +155,8 @@ On Render’s free web service, SQLite storage is ephemeral: capsule rows can di
 
 ## AI-assisted development
 
-- **AI tools used:** Cursor (Composer) for scaffolding React/Express/OAuth/JWT/SQLite and README.
+- **AI tools used:** I used Cursor (Composer) to scaffold the React frontend, Express backend, OAuth and JWT authentication, SQLite integration, and README. I used ChatGPT to refine the dashboard and update the README.
+- **Follow-up prompts:** I had to prompt the AI again to refine the dashboard styling and make small usability improvements. I asked it to give the dropdowns their own styling, fix the clipped “Needs Improvement” option, add a Copy button beside each saved prompt, and move editing into a popup so the create form keeps its draft.
 - **Problem found & corrected:** Early OAuth redirect always used `/dashboard` on the API origin, which broke local Vite development (no SPA on port 3000 until build). Fixed by adding optional `CLIENT_URL` for post-login redirect while keeping the OAuth callback on `APP_URL`.
 - **How OAuth/JWT/API protection were verified:** Successful GitHub login reaches `/dashboard`; `GET /api/capsules` without a cookie and with `token=fake-token-123` both return 401; authenticated CRUD works after login.
 - **How CRUD/ownership were verified:** Created, listed, updated and deleted capsules while signed in; `user_id` is set server-side from JWT `sub`; update/delete only match `id` **and** `user_id`.

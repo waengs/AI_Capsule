@@ -280,7 +280,8 @@ code {
 }
 
 .dashboard-grid h1,
-.dashboard-grid h2 {
+.dashboard-grid h2,
+.edit-dialog h2 {
   font-family: var(--font-display);
   font-style: italic;
   margin: 0 0 0.35rem;
@@ -310,6 +311,7 @@ code {
 .capsule-form textarea,
 .capsule-form select {
   width: 100%;
+  min-width: 0;
   border: 2px solid var(--line-strong);
   border-radius: 8px;
   padding: 0.6rem 0.75rem;
@@ -331,14 +333,78 @@ code {
   resize: vertical;
 }
 
+.capsule-form select {
+  appearance: none;
+  border-color: var(--line);
+  padding-right: 2.3rem;
+  background-color: var(--accent-soft);
+  background-image: linear-gradient(45deg, transparent 50%, var(--accent-deep) 50%),
+    linear-gradient(135deg, var(--accent-deep) 50%, transparent 50%);
+  background-position: right 1rem center, right 0.65rem center;
+  background-size: 0.35rem 0.35rem;
+  background-repeat: no-repeat;
+  cursor: pointer;
+}
+
+.capsule-form select:hover {
+  border-color: var(--accent-deep);
+}
+
+@supports (appearance: base-select) {
+  .capsule-form select,
+  .capsule-form select::picker(select) {
+    appearance: base-select;
+  }
+
+  .capsule-form select {
+    padding-right: 0.75rem;
+    background-image: none;
+  }
+
+  .capsule-form select::picker-icon {
+    color: var(--accent-deep);
+  }
+
+  .capsule-form select::picker(select) {
+    margin: 0.25rem 0;
+    border: 2px solid var(--line-strong);
+    border-radius: 8px;
+    background: var(--panel);
+    color: var(--ink);
+    box-shadow: 3px 3px 0 var(--line);
+  }
+
+  .capsule-form option {
+    padding: 0.5rem 0.75rem;
+  }
+
+  .capsule-form option:checked,
+  .capsule-form option:hover,
+  .capsule-form option:focus-visible {
+    background: var(--accent-soft);
+  }
+}
+
 .form-row {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.75rem;
 }
 
-.form-row:has(> :nth-child(2):last-child) {
-  grid-template-columns: 1fr 1fr;
+.edit-dialog {
+  width: min(36rem, calc(100% - 2rem));
+  max-height: calc(100dvh - 2rem);
+  padding: clamp(1rem, 4vw, 1.5rem);
+  border: 2px solid var(--ink);
+  border-radius: var(--radius);
+  background: var(--panel);
+  color: var(--ink);
+  box-shadow: var(--shadow-offset);
+  overscroll-behavior: contain;
+}
+
+.edit-dialog::backdrop {
+  background: rgb(58 20 32 / 50%);
 }
 
 .user-chip {
@@ -410,16 +476,34 @@ code {
 }
 
 .prompt-preview {
-  white-space: pre-wrap;
-  word-break: break-word;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  column-gap: 0.75rem;
   background: var(--accent-soft);
   border: 2px solid var(--line);
   border-radius: 8px;
   padding: 0.75rem;
+  margin: 0.75rem 0;
+}
+
+.prompt-preview pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 0.85rem;
   line-height: 1.45;
-  margin: 0.75rem 0;
+  margin: 0;
+}
+
+.prompt-copy-status {
+  grid-column: 1 / -1;
+  color: var(--accent-deep);
+  font-size: 0.85rem;
+}
+
+.prompt-copy-status:not(:empty) {
+  margin-top: 0.4rem;
 }
 
 .capsule-meta {
@@ -458,13 +542,17 @@ code {
 
 @media (max-width: 860px) {
   .feature-strip,
-  .dashboard-grid,
-  .form-row,
-  .form-row:has(> :nth-child(2):last-child) {
+  .dashboard-grid {
     grid-template-columns: 1fr;
   }
 
   .hero {
     padding-top: 1.5rem;
+  }
+}
+
+@media (max-width: 420px) {
+  .form-row {
+    grid-template-columns: 1fr;
   }
 }
