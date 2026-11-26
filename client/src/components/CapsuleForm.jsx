@@ -1,8 +1,14 @@
+// Fixed option lists for the form's dropdowns.
 const CATEGORIES = ['Coding', 'Writing', 'Research', 'Debugging', 'Study', 'Other'];
 const USEFULNESS = ['Good', 'Needs Improvement'];
 const YES_NO = ['Yes', 'No'];
 
+// Controlled form for creating or editing a capsule.
+// State lives in the parent (Dashboard); this component just reads `form` and reports changes.
+// Props: form (values), setForm (updater), onSubmit, onCancel (null hides the cancel button),
+//        busy (disables inputs while saving), editing (toggles button labels).
 export default function CapsuleForm({ form, setForm, onSubmit, onCancel, busy, editing }) {
+  // Update a single field while preserving the rest of the form state.
   function update(field, value) {
     setForm((prev) => ({ ...prev, [field]: value }));
   }
@@ -110,24 +116,26 @@ export default function CapsuleForm({ form, setForm, onSubmit, onCancel, busy, e
           type="url"
           value={form.screenshot_url}
           onChange={(e) => update('screenshot_url', e.target.value)}
-          placeholder="https://…"
+          placeholder="https://example.com/screenshot.png"
         />
       </label>
 
       <label>
-        Notes
+        Notes and reflections
         <textarea
           rows={2}
           value={form.notes}
           onChange={(e) => update('notes', e.target.value)}
-          placeholder="Reflection / comment"
+          placeholder="What worked well, personal reflections, or ideas for the next iteration..."
         />
       </label>
 
       <div className="form-actions">
+        {/* Label reflects state: saving, editing an existing capsule, or creating a new one. */}
         <button className="btn btn-primary" type="submit" disabled={busy}>
-          {busy ? 'Saving…' : editing ? 'Update record' : 'Create record'}
+          {busy ? 'Saving...' : editing ? 'Save changes' : 'Save capsule'}
         </button>
+        {/* Cancel is only shown while editing (onCancel is null in create mode). */}
         {onCancel && (
           <button className="btn btn-ghost" type="button" onClick={onCancel} disabled={busy}>
             Cancel edit

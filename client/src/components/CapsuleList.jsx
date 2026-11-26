@@ -1,10 +1,14 @@
+// Renders the user's saved capsules with edit/delete controls.
+// Props: capsules (array), onEdit/onDelete (callbacks), busy (disables buttons during requests).
 export default function CapsuleList({ capsules, onEdit, onDelete, busy }) {
+  // Empty state shown before the user has created anything.
   if (!capsules.length) {
-    return <p className="muted empty-state">No capsules yet. Create your first prompt record.</p>;
+    return <p className="muted empty-state">No prompt records yet. Use the form to save your first AI capsule.</p>;
   }
 
   return (
     <ul className="capsule-list">
+      {/* One list item per capsule; key by id for stable React reconciliation. */}
       {capsules.map((c) => (
         <li key={c.id}>
           <div className="capsule-head">
@@ -35,7 +39,9 @@ export default function CapsuleList({ capsules, onEdit, onDelete, busy }) {
               </button>
             </div>
           </div>
+          {/* <pre> preserves the prompt's original whitespace and line breaks. */}
           <pre className="prompt-preview">{c.prompt_text}</pre>
+          {/* Metadata; optional fields are only rendered when present. */}
           <dl className="capsule-meta">
             {c.response_summary && (
               <>
@@ -44,7 +50,7 @@ export default function CapsuleList({ capsules, onEdit, onDelete, busy }) {
               </>
             )}
             <dt>Usefulness</dt>
-            <dd>{c.usefulness || '—'}</dd>
+            <dd>{c.usefulness || 'Not rated'}</dd>
             <dt>Reviewed</dt>
             <dd>{c.reviewed}</dd>
             <dt>Improved</dt>
@@ -60,7 +66,7 @@ export default function CapsuleList({ capsules, onEdit, onDelete, busy }) {
                 <dt>Evidence</dt>
                 <dd>
                   <a href={c.screenshot_url} target="_blank" rel="noreferrer">
-                    Screenshot
+                    View screenshot
                   </a>
                 </dd>
               </>

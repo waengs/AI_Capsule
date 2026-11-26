@@ -11,6 +11,7 @@ import {
 import CapsuleForm from '../components/CapsuleForm';
 import CapsuleList from '../components/CapsuleList';
 
+// Default values for a blank "create capsule" form.
 const emptyForm = {
   project_name: '',
   prompt_title: '',
@@ -25,22 +26,25 @@ const emptyForm = {
   notes: ''
 };
 
+// Main authenticated screen: shows the user, the create/edit form, and their capsule list.
 export default function Dashboard() {
   const navigate = useNavigate();
-  const [user, setUser] = useState(null);
-  const [capsules, setCapsules] = useState([]);
-  const [form, setForm] = useState(emptyForm);
-  const [editingId, setEditingId] = useState(null);
-  const [error, setError] = useState('');
-  const [busy, setBusy] = useState(false);
+  const [user, setUser] = useState(null); // The logged-in GitHub user.
+  const [capsules, setCapsules] = useState([]); // The user's saved capsules.
+  const [form, setForm] = useState(emptyForm); // Current form values (create or edit).
+  const [editingId, setEditingId] = useState(null); // Non-null when editing an existing capsule.
+  const [error, setError] = useState(''); // Last error message to display.
+  const [busy, setBusy] = useState(false); // True while a save/delete request is in flight.
 
+  // Reload the capsule list from the server.
   async function refresh() {
     const data = await listCapsules();
     setCapsules(data);
   }
 
+  // On mount: confirm the session and load data; redirect to login if the session is gone.
   useEffect(() => {
-    let cancelled = false;
+    let cancelled = false; // Avoids state updates after unmount.
     (async () => {
       try {
         const me = await getMe();
@@ -48,6 +52,7 @@ export default function Dashboard() {
         setUser(me.user);
         await refresh();
       } catch {
+        // Session invalid/expired: send the user back to login.
         if (!cancelled) navigate('/login', { replace: true });
       }
     })();
@@ -56,6 +61,7 @@ export default function Dashboard() {
     };
   }, [navigate]);
 
+  // Switch the form into edit mode, pre-filled with the chosen capsule's values.
   function startEdit(capsule) {
     setEditingId(capsule.id);
     setForm({
@@ -72,41 +78,44 @@ export default function Dashboard() {
       notes: capsule.notes || ''
     });
     setError('');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: 'smooth' }); // Bring the form into view.
   }
 
+  // Clear the form and leave edit mode (back to "create" state).
   function resetForm() {
     setEditingId(null);
     setForm(emptyForm);
     setError('');
   }
 
+  // Handle form submit for both create and update, then refresh the list.
   async function handleSubmit(event) {
     event.preventDefault();
     setBusy(true);
     setError('');
     try {
       if (editingId) {
-        await updateCapsule(editingId, form);
+        await updateCapsule(editingId, form); // Edit mode.
       } else {
-        await createCapsule(form);
+        await createCapsule(form); // Create mode.
       }
       resetForm();
       await refresh();
     } catch (err) {
       setError(err.message || 'Save failed');
     } finally {
-      setBusy(false);
+      setBusy(false); // Always re-enable the UI.
     }
   }
 
+  // Delete a capsule after a confirmation prompt.
   async function handleDelete(id) {
     if (!window.confirm('Delete this capsule?')) return;
     setBusy(true);
     setError('');
     try {
       await deleteCapsule(id);
-      if (editingId === id) resetForm();
+      if (editingId === id) resetForm(); // If editing the deleted one, clear the form.
       await refresh();
     } catch (err) {
       setError(err.message || 'Delete failed');
@@ -115,6 +124,7 @@ export default function Dashboard() {
     }
   }
 
+  // Log out and return to the landing page.
   async function handleLogout() {
     await logout();
     navigate('/');
@@ -135,11 +145,13 @@ export default function Dashboard() {
         </div>
       </header>
 
+      {/* Two-column layout: the form on the left, the capsule list on the right. */}
       <main className="dashboard-grid">
         <section>
-          <h1>{editingId ? 'Update capsule' : 'Create capsule'}</h1>
+          {/* Heading reflects whether we are creating or editing. */}
+          <h1>{editingId ? 'Edit prompt capsule' : 'Create new prompt capsule'}</h1>
           <p className="muted">
-            Records are saved to your account only. Ownership comes from the verified JWT.
+            All records are stored privately under your account and cannot be seen or modified by other users.
           </p>
           {error && (
             <p className="alert" role="alert">

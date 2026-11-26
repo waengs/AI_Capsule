@@ -1,13 +1,13 @@
 # AI Capsule
 
-Cloud-deployed AI prompt manager (Assignment 3 — CSE3CWA / CSE5006).
+Cloud-deployed AI prompt manager (Assignment 3, CSE3CWA / CSE5006).
 
 React frontend + Express backend + GitHub OAuth + application JWT (HttpOnly cookie `token`) + SQLite CRUD.
 
 ## Deployed URL
 
 - **Public URL:** _add after deployment, e.g. `https://ai-capsule.onrender.com`_
-- **Cloud platform:** Render (recommended) — or Azure App Service / another public host
+- **Cloud platform:** Render (recommended), or Azure App Service or another public host
 
 ## Features
 
@@ -71,9 +71,9 @@ Then open http://localhost:3000
 
 The React app calls same-origin paths with `credentials: 'include'` so the `token` cookie is sent:
 
-- `GET /auth/me` — current user from verified JWT
-- `POST /auth/logout` — clear cookie
-- `GET/POST/PUT/DELETE /api/capsules` — CRUD
+- `GET /auth/me`: current user from verified JWT
+- `POST /auth/logout`: clear cookie
+- `GET/POST/PUT/DELETE /api/capsules`: CRUD
 
 In production, Express serves `client/dist` from the same public URL (avoids CORS/cookie issues).
 
@@ -88,7 +88,7 @@ In production, Express serves `client/dist` from the same public URL (avoids COR
 
 ## Database
 
-SQLite via `sql.js` (pure JS, file-backed — no native build tools required). On first start the server creates:
+SQLite via `sql.js` (pure JS, file-backed, no native build tools required). On first start the server creates:
 
 ```sql
 CREATE TABLE IF NOT EXISTS capsules (
@@ -120,7 +120,7 @@ Default file: `data/capsules.db`.
 3. Settings:
    - **Build command:** `npm install && npm run build`
    - **Start command:** `npm start`
-4. Set environment variables (names only shown here — put real values in Render):
+4. Set environment variables (names only shown here; put real values in Render):
    - `NODE_ENV=production`
    - `APP_URL=https://YOUR-SERVICE.onrender.com`
    - `JWT_SECRET=...`
